@@ -4,10 +4,20 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+from firebaseConfig import FIREBASE_CONFIG
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 # Setup the Selenium Chrome Driver
 service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service)
+
+# Initialize Firebase Admin
+cred = credentials.Certificate(FIREBASE_CONFIG['credential'])
+firebase_admin.initialize_app(cred)
+
+# Get a reference to the Firestore service
+db = firestore.client()
 
 try:
     # Open the webpage
@@ -58,9 +68,21 @@ try:
         waze_link = waze_link_elements[1].get_attribute('href') if len(
             waze_link_elements) > 1 else "Waze link not found"
 
+        outlet_data = {
+            'name': name,
+            'address': info_texts[0],
+            'latitude': latitude,
+            'longitude': longitude,
+            'operating_hours': operating_hours,
+            'waze_link': waze_link
+        }
+
+        # Store the data in Firestore
+        db.collection('subway_shops').add(outlet_data)
+
         # Output the information
         print(f'Name: {name}')
-        print(f'Address: {info_texts[0]}' if info_texts else "Address not found")
+        print(f'Address: {info_texts[0]}')
         print(f'Latitude: {latitude}')
         print(f'Longitude: {longitude}')
         print(f'Operating Hours: {operating_hours}')
